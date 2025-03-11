@@ -40,6 +40,7 @@ ui <- page_navbar(
     ),
   nav_panel(title = "Navbar 2",
            h3("Line chart will be here")),
+  nav_spacer(),
   nav_item(input_dark_mode(id = "dark_mode", mode = "dark"))
 )
 
