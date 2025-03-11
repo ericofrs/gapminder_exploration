@@ -1,13 +1,27 @@
 #install.packages("gapminder")
 #install.packages("tidyverse")
+#install.packages("rio")
 library(gapminder)
 library(tidyverse)
+library(rio)
+
 data(gapminder)
+
+rio::export(gapminder, "data/gapminder.rds")
 
 str(gapminder)
 summary(gapminder)
 colSums(is.na(gapminder))
 
+gap_with_colors <- gapminder %>%
+  mutate(color = country_colors[country])
+
+gap_clean <- gapminder %>%
+  filter(year >= 1982)
+
+rio::export(gap_clean, "data/gap_clean.rds")
+
+gap_clean <- import("data/gap_clean.rds") %>% as_tibble()
 
 ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, gdpPercap),
        aes(x = reorder(country, gdpPercap), y = gdpPercap)) +
