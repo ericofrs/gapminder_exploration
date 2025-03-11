@@ -56,8 +56,8 @@ server <- function(input, output) {
 
   })
   output$gdpLifePlot <- renderPlot({
-    ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, lifeExp),
-           aes(x = gdpPercap, y = lifeExp, size = pop, color = country)) +
+    ggplot(gapminder %>% filter(year == input$year),
+           aes(x = gdpPercap, y = lifeExp, size = pop, color = continent)) +
       geom_point(alpha = 0.7) +
       scale_size(range = c(2, 10)) +
       scale_color_manual(values = country_colors) +
