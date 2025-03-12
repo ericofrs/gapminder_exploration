@@ -4,6 +4,7 @@
 library(gapminder)
 library(tidyverse)
 library(rio)
+library(highcharter)
 
 data(gapminder)
 
@@ -33,6 +34,15 @@ ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, gdpPercap),
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_fill_manual(values = country_colors)
 
+plot_ly(data = gap_clean %>% filter(year == 2007) %>% top_n(10, gdpPercap), 
+        x = ~reorder(country, gdpPercap), 
+        y = ~gdpPercap, 
+        type = "bar",
+        marker = list(color = color_vector)) %>%
+  layout(title = paste("Top", 10, "GDP per Capita in", 2007),
+         xaxis = list(title = "Country", tickangle = 45),
+         yaxis = list(title = "GDP per capita in USD PPP"))
+
 ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, lifeExp) ,
        aes(x = reorder(country, lifeExp), y = lifeExp)) +
   geom_bar(stat = "identity", width = 0.8)  +
@@ -58,6 +68,31 @@ ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, lifeExp),
     color = "Country"
   ) +
   theme_minimal()
+
+data <- gap_clean %>%
+  filter(year == 2007) %>% top_n(10, lifeExp) 
+
+hchart(data, 
+       type = "bar", 
+       hcaes(x = reorder(country, lifeExp), y = lifeExp, color = country)) %>%
+  hc_title(text = paste("Top", 10, "Countries by Life Expectation in", 2007)) %>%
+  hc_xAxis(title = list(text = "Country"), 
+           categories = data$country, 
+           labels = list(rotation = -45)) %>%
+  hc_yAxis(title = list(text = "Life Expectation")) %>%
+  hc_colors(country_colors)  # Apply the custom country colors
+
+plot_ly(data, 
+        y = ~reorder(country, lifeExp), 
+        x = ~lifeExp, 
+        type = "bar", 
+        color = ~country,  # This automatically assigns a color to each country
+        colors = country_colors) %>%  # Use custom colors from 'country_colors'
+  layout(title = paste("Top", 10, "Countries by Life Expectation in", 2007),
+         xaxis = list(title = "Country", tickangle = -45),
+         yaxis = list(title = "Life Expectation"),
+         showlegend = FALSE) 
+
 
 
 # Get top 50 countries by GDP per capita

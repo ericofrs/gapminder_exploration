@@ -1,67 +1,81 @@
 library(shiny)
 library(shinythemes)
+library(shinyWidgets)
 library(bslib)
 library(tidyverse)
+library(plotly)
 library(gapminder) #database
 library(rio)
 
-number_top <- 10
+
+number_top <- 20
 
 gap_clean <- import("data/gap_clean.rds", trust = TRUE) %>% as_tibble()
 
 #Define ui
-ui <- page_navbar(
-  title = "gapminder", #page title
+ui <- bslib::page_navbar(
+  title = h1("Gapminder"), #page title
+  navbar_options = navbar_options(underline = TRUE, collapsible = TRUE),
   theme = bs_theme(
     version = 5,          # Bootstrap 5
-    bootswatch = "flatly" # Apply Flatly theme
+    bootswatch = "flatly" # Apply theme
   ),
-  nav_panel(title = "Navbar 1",
-           sidebarPanel(
-             sliderInput(inputId = "year",
-                         label = "Year:", 
-                         min = min(gap_clean$year),
-                         max = max(gap_clean$year),
-                         value = max(gap_clean$year),
-                         step = 5,
-                         sep = "") # no thousand separator
-           ),
-           mainPanel(
-             tabsetPanel(
-               tabPanel("Tab 1",
-                        plotOutput("gdpBarPlot"),
-                        plotOutput("gdpLifePlot"),
-                        plotOutput("lifeBarPlot")
-               ),
-               tabPanel("Tab 2", 
-                        h3("Map and population graph will be here"))
-             )
-           )
-    ),
-  nav_panel(title = "Navbar 2",
-           h3("Line chart will be here")),
+  bslib::nav_panel("Page 1",
+                    navset_card_tab(title="Page 1",
+                      sidebar = sidebar(
+                        sliderTextInput(inputId = "year",
+                                        label = "Choose a year:", 
+                                        choices = unique(gap_clean$year),
+                                        #value = max(gap_clean$year) # replaced by selected in shinyWidgets
+                                        selected = max(gap_clean$year),
+                                        grid = TRUE
+                                        )
+                        ),
+                      tabsetPanel(
+                         tabPanel("Tab 1",
+                                  plotlyOutput("gdpBarPlotly"),
+                                  plotOutput("gdpLifePlot"),
+                                  plotlyOutput("lifeBarPlotly")
+                                  ),
+                         tabPanel("Tab 2", 
+                                  h3("Map and population graph will be here")
+                                  )
+                         )
+                      )
+                    ),
+  bslib::nav_panel("Page 2",
+                    navset_card_tab(title = "Page 2",
+                                    h3("Line chart will be here"))
+                    ),
   nav_spacer(),
-  nav_item(input_dark_mode(id = "dark_mode", mode = "dark"))
+  nav_item(input_dark_mode(id = "dark_mode", mode = "light"))
 )
 
 # Define server
 server <- function(input, output) {
   
-  ## gdpPercap Barplot
-  output$gdpBarPlot <- renderPlot({
-    ggplot(gap_clean %>% filter(year == input$year) %>% top_n(number_top, gdpPercap) ,
-           aes(x = reorder(country, gdpPercap), y = gdpPercap, fill = color)) +
-      geom_bar(stat = "identity", width = 0.8, aes(fill = country)) +  # Define fill here
-      scale_fill_manual(values = country_colors) + 
-      labs(title = paste("Top", number_top,"GDP per Capita in", input$year), 
-           x = "Country", 
-           y = "GDP per capita in USD PPP") +
-      theme_minimal() +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  ## Page 1
+  ### Filter the data according to the user`s choice
+  gap_year <- reactive({
+    subset(gap_clean,
+           year == input$year)
   })
-  ## gdp x lifeExp Scatterplot
+  ### gdpPercap Barplot
+  output$gdpBarPlotly <- renderPlotly({
+    plot_ly(data = gap_year() %>% top_n(number_top, gdpPercap), 
+            x = ~reorder(country, gdpPercap), 
+            y = ~gdpPercap, 
+            type = "bar",
+            color = ~country,  # This automatically assigns a color to each country
+            colors = country_colors) %>%  # Use custom colors from 'country_colors'
+      layout(title = paste("Top", number_top, "GDP per Capita in", input$year),
+             xaxis = list(title = "Country", tickangle = 45),
+             yaxis = list(title = "GDP per capita in USD PPP"),
+              showlegend = FALSE)
+  })
+  ### gdp x lifeExp Scatterplot
   output$gdpLifePlot <- renderPlot({
-    ggplot(gap_clean %>% filter(year == input$year),
+    ggplot(gap_year(),
            aes(x = gdpPercap, y = lifeExp, size = pop, color = continent)) +
       geom_point(alpha = 0.7) +
       scale_size(range = c(2, 10)) +
@@ -71,22 +85,21 @@ server <- function(input, output) {
         x = "GDP per Capita",
         y = "Life Expectancy",
         size = "Population",
-        color = "Continent"
-      ) +
-      theme_minimal()
+        color = "Continent") #+
+      #theme_minimal()
   })
-  ## lifeExp Barplot
-  output$lifeBarPlot <- renderPlot({
-    ggplot(gap_clean %>% filter(year == input$year) %>% top_n(number_top, lifeExp) ,
-           aes(x = reorder(country, lifeExp), y = lifeExp)) +
-      geom_bar(stat = "identity", width = 0.8, aes(fill = country)) +  # Define fill here
-      scale_fill_manual(values = country_colors) +  # Map country colors directly
-      labs(title = paste("Top", number_top,"Countries by Life Expectation in", input$year), 
-           x = "Country", 
-           y = "Life Expectation") +
-      theme_minimal() +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-      coord_flip()
+  ### lifeExp Barplot
+  output$lifeBarPlotly <- renderPlotly({
+    plot_ly(gap_year() %>% top_n(number_top, lifeExp) , 
+            x = ~lifeExp, 
+            y = ~reorder(country, lifeExp),
+            type = "bar", 
+            color = ~country,  # This automatically assigns a color to each country
+            colors = country_colors) %>%  # Use custom colors from 'country_colors'
+      layout(title = paste("Top", number_top, "Countries by Life Expectation in", input$year),
+             xaxis = list(title = "Life Expectation in years"),
+             yaxis = list(title = "Country"),
+              showlegend = FALSE) 
   })
 }
 
