@@ -24,24 +24,43 @@ rio::export(gap_clean, "data/gap_clean.rds")
 
 gap_clean <- import("data/gap_clean.rds") %>% as_tibble()
 
-data <- 
+gap_year <- list(gap_year_gdp = gap_clean %>%
+               filter(year == 2007) %>% 
+               top_n(10, gdpPercap),
+             gap_year_life = gap_clean %>%
+               filter(year == 2007) %>% 
+               top_n(10, lifeExp),
+             gap_year_combined = bind_rows(
+               gap_clean %>%
+                 filter(year == 2007) %>%
+                 top_n(10, gdpPercap),
+               gap_clean %>%
+                 filter(year == 2007) %>%
+                 top_n(10, lifeExp)
+               ) %>%
+               distinct(country, .keep_all = TRUE)
+             )
 
-list(gap_year_gdp = ,
-     )  
-  gap_clean %>%
-  filter(year == 2007) %>% top_n(10, lifeExp) 
+gap_year <- reactive({
+  subset(gap_clean,
+         year == input$year)
+})
 
-
-
-# Get top 50 countries by GDP per capita
-top_gdp <- data_filtered %>% 
-  arrange(desc(gdpPercap)) %>% 
-  head(50)
-
-# Get top 50 countries by life expectancy
-top_lifeExp <- data_filtered %>% 
-  arrange(desc(lifeExp)) %>% 
-  head(50)
-
-# Combine both lists (remove duplicates)
-top_countries <- bind_rows(top_gdp, top_lifeExp) %>% distinct(country, .keep_all = TRUE)
+gap_year <- reactive({
+  list(gap_year_gdp = gap_clean %>%
+           filter(year == input$year) %>% 
+           top_n(number_top, gdpPercap),
+         gap_year_life = gap_clean %>%
+           filter(year == input$year) %>% 
+           top_n(number_top, lifeExp),
+         gap_year_combined = bind_rows(
+           gap_clean %>%
+             filter(year == input$year) %>%
+             top_n(number_top, gdpPercap),
+           gap_clean %>%
+             filter(year == input$year) %>%
+             top_n(number_top, lifeExp)
+         ) %>%
+           distinct(country, .keep_all = TRUE)
+    )
+})

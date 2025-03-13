@@ -57,12 +57,26 @@ server <- function(input, output) {
   ## Page 1
   ### Filter the data according to the user`s choice
   gap_year <- reactive({
-    subset(gap_clean,
-           year == input$year)
+    list(gap_year_gdp = gap_clean %>%
+           filter(year == input$year) %>% 
+           top_n(number_top, gdpPercap),
+         gap_year_life = gap_clean %>%
+           filter(year == input$year) %>% 
+           top_n(number_top, lifeExp),
+         gap_year_combined = bind_rows(
+           gap_clean %>%
+             filter(year == input$year) %>%
+             top_n(number_top, gdpPercap),
+           gap_clean %>%
+             filter(year == input$year) %>%
+             top_n(number_top, lifeExp)
+         ) %>%
+           distinct(country, .keep_all = TRUE)
+    )
   })
   ### gdpPercap Barplot
   output$gdpBarPlotly <- renderPlotly({
-    plot_ly(data = gap_year() %>% top_n(number_top, gdpPercap), 
+    plot_ly(data = gap_year()$gap_year_gdp, 
             x = ~reorder(country, gdpPercap), 
             y = ~gdpPercap, 
             type = "bar",
@@ -75,7 +89,7 @@ server <- function(input, output) {
   })
   ### gdp x lifeExp Scatterplot
   output$gdpLifePlot <- renderPlot({
-    ggplot(gap_year(),
+    ggplot(data = gap_year()$gap_year_combined,
            aes(x = gdpPercap, y = lifeExp, size = pop, color = continent)) +
       geom_point(alpha = 0.7) +
       scale_size(range = c(2, 10)) +
@@ -90,7 +104,7 @@ server <- function(input, output) {
   })
   ### lifeExp Barplot
   output$lifeBarPlotly <- renderPlotly({
-    plot_ly(gap_year() %>% top_n(number_top, lifeExp) , 
+    plot_ly(data = gap_year()$gap_year_life , 
             x = ~lifeExp, 
             y = ~reorder(country, lifeExp),
             type = "bar", 
