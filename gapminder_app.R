@@ -34,7 +34,7 @@ ui <- bslib::page_navbar(
                       tabsetPanel(
                          tabPanel("Tab 1",
                                   plotlyOutput("gdpBarPlotly"),
-                                  plotOutput("gdpLifePlot"),
+                                  plotlyOutput("gdpLifePlot"),
                                   plotlyOutput("lifeBarPlotly")
                                   ),
                          tabPanel("Tab 2", 
@@ -88,19 +88,29 @@ server <- function(input, output) {
               showlegend = FALSE)
   })
   ### gdp x lifeExp Scatterplot
-  output$gdpLifePlot <- renderPlot({
-    ggplot(data = gap_year()$gap_year_combined,
-           aes(x = gdpPercap, y = lifeExp, size = pop, color = continent)) +
-      geom_point(alpha = 0.7) +
-      scale_size(range = c(2, 10)) +
-      scale_color_manual(values = continent_colors) +
-      labs(
+  output$gdpLifePlot <- renderPlotly({
+    plot_ly(
+      data = gap_year()$gap_year_combined, 
+      x = ~gdpPercap, 
+      y = ~lifeExp, 
+      size = ~pop, 
+      color = ~continent, 
+      colors = continent_colors,  # Apply custom continent colors
+      type = "scatter", 
+      mode = "markers",
+      text = ~country,   # Show country name on hover
+      hoverinfo = "text", # Display only the country name on hover
+      marker = list(
+        opacity = 0.7,   # Adjust transparency
+        line = list(width = 0.5, color = "black") # Fix the `line.width` warning
+      )
+    ) %>%
+      layout(
         title = paste("GDP per Capita vs. Life Expectancy in", input$year),
-        x = "GDP per Capita",
-        y = "Life Expectancy",
-        size = "Population",
-        color = "Continent") #+
-      #theme_minimal()
+        xaxis = list(title = "GDP per Capita"),
+        yaxis = list(title = "Life Expectancy"),
+        legend = list(title = list(text = "Continent"))
+      )
   })
   ### lifeExp Barplot
   output$lifeBarPlotly <- renderPlotly({
