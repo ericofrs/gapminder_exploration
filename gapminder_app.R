@@ -107,8 +107,8 @@ server <- function(input, output) {
     ) %>%
       layout(
         title = paste("GDP per Capita vs. Life Expectancy in", input$year),
-        xaxis = list(title = "GDP per Capita"),
-        yaxis = list(title = "Life Expectancy"),
+        xaxis = list(title = "GDP per Capita", spikemode = 'toaxis'),
+        yaxis = list(title = "Life Expectancy", spikemode = 'toaxis'),
         legend = list(title = list(text = "Continent"))
       )
   })
