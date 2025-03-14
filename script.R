@@ -4,6 +4,7 @@
 library(gapminder)
 library(tidyverse)
 library(rio)
+library(highcharter)
 
 data(gapminder)
 
@@ -23,52 +24,43 @@ rio::export(gap_clean, "data/gap_clean.rds")
 
 gap_clean <- import("data/gap_clean.rds") %>% as_tibble()
 
-ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, gdpPercap),
-       aes(x = reorder(country, gdpPercap), y = gdpPercap)) +
-  geom_bar(stat = "identity", width = 0.8)  +
-  labs(title = paste("Top 50 Countries by GDP per Capita in", input$year), 
-       x = "Country", 
-       y = "GDP per capita in USD PPP") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_manual(values = country_colors)
+gap_year <- list(gap_year_gdp = gap_clean %>%
+               filter(year == 2007) %>% 
+               top_n(10, gdpPercap),
+             gap_year_life = gap_clean %>%
+               filter(year == 2007) %>% 
+               top_n(10, lifeExp),
+             gap_year_combined = bind_rows(
+               gap_clean %>%
+                 filter(year == 2007) %>%
+                 top_n(10, gdpPercap),
+               gap_clean %>%
+                 filter(year == 2007) %>%
+                 top_n(10, lifeExp)
+               ) %>%
+               distinct(country, .keep_all = TRUE)
+             )
 
-ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, lifeExp) ,
-       aes(x = reorder(country, lifeExp), y = lifeExp)) +
-  geom_bar(stat = "identity", width = 0.8)  +
-  labs(title = paste("Top 50 Countries by Life Expectation in", input$year), 
-       x = "Country", 
-       y = "Life Expectation") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_manual(values = country_colors)
+gap_year <- reactive({
+  subset(gap_clean,
+         year == input$year)
+})
 
-
-
-ggplot(gapminder %>% filter(year == input$year) %>% top_n(50, lifeExp),
-       aes(x = gdpPercap, y = lifeExp, size = pop, color = country)) +
-  geom_point(alpha = 0.7) +
-  scale_size(range = c(2, 10)) +
-  scale_color_manual(values = country_colors) +
-  labs(
-    title = paste("GDP per Capita vs. Life Expectancy in", input$year),
-    x = "GDP per Capita",
-    y = "Life Expectancy",
-    size = "Population",
-    color = "Country"
-  ) +
-  theme_minimal()
-
-
-# Get top 50 countries by GDP per capita
-top_gdp <- data_filtered %>% 
-  arrange(desc(gdpPercap)) %>% 
-  head(50)
-
-# Get top 50 countries by life expectancy
-top_lifeExp <- data_filtered %>% 
-  arrange(desc(lifeExp)) %>% 
-  head(50)
-
-# Combine both lists (remove duplicates)
-top_countries <- bind_rows(top_gdp, top_lifeExp) %>% distinct(country, .keep_all = TRUE)
+gap_year <- reactive({
+  list(gap_year_gdp = gap_clean %>%
+           filter(year == input$year) %>% 
+           top_n(number_top, gdpPercap),
+         gap_year_life = gap_clean %>%
+           filter(year == input$year) %>% 
+           top_n(number_top, lifeExp),
+         gap_year_combined = bind_rows(
+           gap_clean %>%
+             filter(year == input$year) %>%
+             top_n(number_top, gdpPercap),
+           gap_clean %>%
+             filter(year == input$year) %>%
+             top_n(number_top, lifeExp)
+         ) %>%
+           distinct(country, .keep_all = TRUE)
+    )
+})
